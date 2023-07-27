@@ -1,6 +1,8 @@
 import contextlib
 from pathlib import Path
-from typing import Any, Callable, Dict, Generic, Optional, Sequence, TypeVar, Union
+from typing import (Any, Callable, Dict, Generic, Optional, Sequence, TypeVar,
+                    Union)
+
 import h5py
 import numpy as np
 
@@ -10,21 +12,10 @@ except ImportError:
     pass
 
 from .models import LinkResolution, Selection
-from .utils import (
-    NotFoundError,
-    QueryArgumentError,
-    attr_metadata,
-    convert,
-    get_array_stats,
-    open_file_with_error_fallback,
-    parse_link_resolution_arg,
-    stringify_dtype,
-    get_filters,
-    get_entity_from_file,
-    hdf_path_join,
-    get_dataset_slice,
-    sorted_dict,
-)
+from .utils import (NotFoundError, QueryArgumentError, attr_metadata, convert,
+                    get_array_stats, get_dataset_slice, get_entity_from_file,
+                    get_filters, hdf_path_join, open_file_with_error_fallback,
+                    parse_link_resolution_arg, sorted_dict, stringify_dtype)
 
 
 class EntityContent:
@@ -279,8 +270,9 @@ def get_content_from_file(
     create_error: Callable[[int, str], Exception],
     resolve_links_arg: Optional[str] = LinkResolution.ONLY_VALID,
     h5py_options: Dict[str, Any] = {},
+    token: str = "",
 ):
-    f = open_file_with_error_fallback(filepath, create_error, h5py_options)
+    f = open_file_with_error_fallback(filepath, create_error, h5py_options, token)
 
     try:
         resolve_links = parse_link_resolution_arg(
@@ -307,8 +299,9 @@ def get_list_of_paths(
     create_error: Callable[[int, str], Exception],
     resolve_links_arg: Optional[str] = LinkResolution.ONLY_VALID,
     h5py_options: Dict[str, Any] = {},
+    token: str = "",
 ):
-    f = open_file_with_error_fallback(filepath, create_error, h5py_options)
+    f = open_file_with_error_fallback(filepath, create_error, h5py_options, token)
 
     try:
         resolve_links = parse_link_resolution_arg(

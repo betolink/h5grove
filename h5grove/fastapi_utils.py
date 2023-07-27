@@ -1,15 +1,12 @@
 """Helpers for usage with `FastAPI <https://fastapi.tiangolo.com/>`_"""
-from fastapi import APIRouter, Depends, Response, Query, Request
+from typing import Callable, List, Optional, Union
+
+from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.routing import APIRoute
 from pydantic import BaseSettings
-from typing import List, Optional, Union, Callable
 
-from .content import (
-    DatasetContent,
-    ResolvedEntityContent,
-    get_content_from_file,
-    get_list_of_paths,
-)
+from .content import (DatasetContent, ResolvedEntityContent,
+                      get_content_from_file, get_list_of_paths)
 from .encoders import encode
 
 __all__ = [
@@ -78,10 +75,11 @@ async def add_base_path(file):
 async def get_attr(
     file: str = Depends(add_base_path),
     path: str = "/",
+    token: str = "",
     attr_keys: Optional[List[str]] = Query(default=None),
 ):
     """`/attr/` endpoint handler"""
-    with get_content_from_file(file, path, create_error) as content:
+    with get_content_from_file(file, path, create_error, token=token) as content:
         assert isinstance(content, ResolvedEntityContent)
         h5grove_response = encode(content.attributes(attr_keys), "json")
         return Response(
@@ -97,9 +95,10 @@ async def get_data(
     format: str = "json",
     flatten: bool = False,
     selection=None,
+    token: str = "",
 ):
     """`/data/` endpoint handler"""
-    with get_content_from_file(file, path, create_error) as content:
+    with get_content_from_file(file, path, create_error, token=token) as content:
         assert isinstance(content, DatasetContent)
         data = content.data(selection, flatten, dtype)
         h5grove_response = encode(data, format)
@@ -113,10 +112,13 @@ async def get_meta(
     file: str = Depends(add_base_path),
     path: str = "/",
     resolve_links: str = "only_valid",
+    token: str = "",
 ):
     """`/meta/` endpoint handler"""
 
-    with get_content_from_file(file, path, create_error, resolve_links) as content:
+    with get_content_from_file(
+        file, path, create_error, resolve_links, token=token
+    ) as content:
         h5grove_response = encode(content.metadata(), "json")
         return Response(
             content=h5grove_response.content, headers=h5grove_response.headers
@@ -125,10 +127,10 @@ async def get_meta(
 
 @router.get("/stats/")
 async def get_stats(
-    file: str = Depends(add_base_path), path: str = "/", selection=None
+    file: str = Depends(add_base_path), path: str = "/", selection=None, token: str = ""
 ):
     """`/stats/` endpoint handler"""
-    with get_content_from_file(file, path, create_error) as content:
+    with get_content_from_file(file, path, create_error, token=token) as content:
         assert isinstance(content, DatasetContent)
         h5grove_response = encode(content.data_stats(selection), "json")
         return Response(
@@ -141,8 +143,11 @@ async def get_paths(
     file: str = Depends(add_base_path),
     path: str = "/",
     resolve_links: str = "only_valid",
+    token: str = "",
 ):
-    with get_list_of_paths(file, path, create_error, resolve_links) as paths:
+    with get_list_of_paths(
+        file, path, create_error, resolve_links, token=token
+    ) as paths:
         h5grove_response = encode(paths, "json")
         return Response(
             content=h5grove_response.content, headers=h5grove_response.headers

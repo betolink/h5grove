@@ -1,9 +1,11 @@
-from pathlib import Path
-import h5py
-from h5py.version import version_tuple as h5py_version
 from os.path import basename
-import numpy as np
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, Union
+
+import fsspec
+import h5py
+import numpy as np
+from h5py.version import version_tuple as h5py_version
 
 from .models import H5pyEntity, LinkResolution, Selection, StrDtype
 
@@ -295,13 +297,30 @@ def stringify_dtype(dtype: np.dtype) -> StrDtype:
     }
 
 
+def get_mapper(filepath: str, token: str) -> fsspec.AbstractFileSystem:
+    client_kwargs = {
+        "headers": {"Authorization": f"Bearer {token}"},
+        # This is important! if we trust the env end send a bearer token
+        # auth will fail!
+        "trust_env": False,
+    }
+    fs = fsspec.filesystem("https", client_kwargs=client_kwargs)
+    f = fs.open(filepath)
+    return f
+
+
 def open_file_with_error_fallback(
     filepath: Union[str, Path],
     create_error: Callable[[int, str], Exception],
     h5py_options: Dict[str, Any] = {},
+    token: str = "",
 ) -> h5py.File:
     try:
-        f = h5py.File(filepath, "r", **h5py_options)
+        if type(filepath) is str and filepath.startswith("https://"):
+            file = get_mapper(filepath, token)
+            f = h5py.File(file, "r", **h5py_options)
+        else:
+            f = h5py.File(filepath, "r", **h5py_options)
     except OSError as e:
         if isinstance(e, FileNotFoundError) or "No such file or directory" in str(e):
             raise create_error(404, "File not found!")
